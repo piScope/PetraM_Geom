@@ -214,6 +214,7 @@ def _make_Solids(shape, verbose=False, tolerance=1e-6):
         count = count + 1
 
     result = ms.Solid()
+
     if count == 0:
         print(" . Could not make solid (no shell)")
     else:
@@ -236,7 +237,7 @@ def _make_Solids(shape, verbose=False, tolerance=1e-6):
         else:
             if verbose:
                 print(" . Could not apply ShapeFix_Shape")
-
+            return result
     return shape
 
 

@@ -70,7 +70,6 @@ def _create_surface_filling(edges, occ_geom_tolerance):
     fix.FixOrientation()
     return fix.Face()
 
-
 def split_hairlineface(face, limit=0.1):
     '''
     x------------------x-----------------x

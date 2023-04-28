@@ -14,8 +14,8 @@ from ifigure.widgets.miniframe_with_windowlist import DialogWithWindowList
 
 from petram.pi.simple_frame_plus import SimpleFramePlus
 
-choices = ['Property', 'Distance', 'Find small face', 'Find short edge', 'Find same...']
-choices2 = ['property', 'distance', 'smallface', 'shortedge', 'findsame']
+choices = ['Property', 'Distance', 'Find small face', 'Find short edge', 'Narrow face', 'Find same...']
+choices2 = ['property', 'distance', 'smallface', 'shortedge', 'narrowface', 'findsame']
 
 def find_surf(x, s, l):
     lines = s[x]
@@ -34,11 +34,12 @@ class GeomInfoPalette(SimpleFramePlus):
         super(GeomInfoPalette, self).__init__(parent, wid, title, style=style)
 
         elp1 = [['entity (p/l/f/v)', '', 0, {},],]
-        elp2 = [['point', '', 0, {},],
-                ['target (p/l/f)', '', 0, {},],]
+        elp2 = [['from (p/l/f/v)', '', 0, {},],
+                ['to (p/l/f/v)', '', 0, {},],]
         elp3 = [['threshold', 1e-6, 300, {},],]
         elp4 = [['threshold', 1e-4, 300, {},],]
-        elp5 = [['entity (l/f)', '', 0, {},],
+        elp5 = [['threshold', 1e-4, 300, {},],]        
+        elp6 = [['entity (l/f)', '', 0, {},],
                 ['tolelance', 1e-5, 300, {}],]
 
         setting = [{'choices':choices,
@@ -47,7 +48,8 @@ class GeomInfoPalette(SimpleFramePlus):
                    {'elp': elp2},
                    {'elp': elp3},
                    {'elp': elp4},
-                   {'elp': elp5},]
+                   {'elp': elp5},
+                   {'elp': elp6},]        
         ll = [(None, None, 34, setting), ]
 
         p = self
@@ -157,6 +159,9 @@ class GeomInfoPalette(SimpleFramePlus):
         viewer.highlight_none()
 
         if inspect_type == 'smallface':
+            show_faces(self.data)
+
+        if inspect_type == 'narrowface':
             show_faces(self.data)
 
         if inspect_type == 'shortedge':

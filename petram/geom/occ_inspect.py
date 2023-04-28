@@ -1,5 +1,6 @@
 import numpy as np
-
+from collections import defaultdict
+import itertools
 from petram.geom.occ_cbook import *
 
 
@@ -82,12 +83,16 @@ def shape_property_txt(bt, shape):
 
         surf, kind = downcast_surface(surf)
 
+        min_width = measure_face_minimum_width(shape)
+        print("min_width", min_width)
+        
         txt = ['Surface:',
                ' Kind:\t' + kind,
                ' Area:\t' + str(surfacecount),
                ' U-Parameter:\t' + str([u1, u2]),
                ' V-Parameter:\t' + str([v1, v2]),
-               ' Periodic (U,V):\t' + str([is_uperiodic, is_vperiodic]), ]
+               ' Periodic (U,V):\t' + str([is_uperiodic, is_vperiodic]),
+               ' Minmum width:\t' + str(min_width)]
 
         if surf.IsKind('Geom_Plane'):
             a, b, c, d = surf.Coefficients()
@@ -226,6 +231,70 @@ def find_min_distance_in_face(bt, shape):
 
     return np.min(md.flatten())
 
+def measure_face_minimum_width(face, check_vertex = False):
+    '''
+    check minimum distance between edges and vertices (go over all combination)
+    '''
+    vertices = [p for p in iter_shape_once(face, 'vertex')]    
+    edges = [p for p in iter_shape_once(face, 'edge')]
+
+    extrema = BRepExtrema_DistShapeShape()
+
+    v2e = defaultdict(list)    
+    for e_idx, e in enumerate(edges):
+        mapper = get_mapper(e, 'vertex')
+        idx = np.where([mapper.Contains(v) for v in vertices])[0]
+        v2e[e_idx].extend(idx)
+    v2e = dict(v2e)
+    #print(v2e)
+    min_width = np.infty
+    if check_vertex:
+        #print("checking vertex")
+        for e_idx, e in enumerate(edges):
+            for v_idx, v in enumerate(vertices):
+                if v_idx in v2e[e_idx]: continue
+                extrema.LoadS1(v)
+                extrema.LoadS2(e)
+                check = extrema.Perform()
+                if check:
+                    min_dist = extrema.Value()
+                else:
+                    print("minimum not found by BRepExtrema_DistShapeShape")
+                min_width = min(min_dist, min_width)
+
+                
+    for e1_idx, e2_idx in itertools.combinations(range(len(edges)), 2):
+        e1 = edges[e1_idx]
+        e2 = edges[e2_idx]        
+        skip = False
+        for v_idx in v2e[e1_idx]:
+            if v_idx in v2e[e2_idx]:
+                skip = True
+        if skip: continue
+        extrema.LoadS1(e1)
+        extrema.LoadS2(e2)
+        check = extrema.Perform()
+        if check:
+            min_dist = extrema.Value()
+        else:
+            print("minimum not found by BRepExtrema_DistShapeShape")
+        if min_dist < min_width:
+            min_width = min(min_dist, min_width)
+            #print(e1_idx, e2_idx)
+    return min_width
+
+def find_narrow_faces(shape, thr):
+    minwidths = []
+    faces = []
+
+    for face in iter_shape_once(shape, 'face', use_ex2=True):
+        w = measure_face_minimum_width(face)
+        if w < thr:
+            minwidths.append(w)
+            faces.append(face)
+
+    return len(faces), faces, minwidths
+
 
 def shape_inspector(shape, inspect_type, shapes):
 
@@ -247,12 +316,35 @@ def shape_inspector(shape, inspect_type, shapes):
         gids = [topolist.find_gid(f) for f in faces]
         kinds = [downcast_surface(bt.Surface(f))[1] for f in faces]
         min_ds = [find_min_distance_in_face(bt, f) for f in faces]
-        txt = '\n'.join([str(int(gid)) + "\t(area = "+str(a) +
+
+        txt = 'faces with small aera (total #:'+str(nsmall)+'\n'
+        txt = txt + '\n'.join([str(int(gid)) + "\t(area = "+str(a) +
                          ",\tmin D= " + str(min_d) + ")\t:" + k
                          for gid, a, k, min_d in zip(gids, areas, kinds, min_ds)])
 
         txt = txt + '\n smax = ' + str(smax)
 
+        txt = txt + '\n'
+
+        if nsmall != 0:
+            data = gids
+        
+        return txt, data
+    
+    elif inspect_type == 'narrowface':
+        args, topolist = shapes
+        thr = args[0]
+        
+        nsmall, faces, minwidths = find_narrow_faces(shape, thr)
+        
+        gids = [topolist.find_gid(f) for f in faces]
+        kinds = [downcast_surface(bt.Surface(f))[1] for f in faces]
+            
+        txt = 'faces with small width (total #:'+str(nsmall)+'\n'
+        txt = txt + '\n'.join([str(int(gg)) + "\t(" + 
+                         "min width= " + str(min_d) + ")\t:" + k
+                         for gg, k, min_d in zip(gids, kinds, minwidths)])
+            
         if nsmall != 0:
             data = gids
         return txt, data
@@ -274,7 +366,8 @@ def shape_inspector(shape, inspect_type, shapes):
                 curve, kind = downcast_curve(curve)
                 kinds.append(kind)
 
-        txt = ',\n'.join([str(int(gid)) + " (L = "+str(l) + "): "+k
+        txt = 'short edges (total #:'+str(nsmall)+'\n'                
+        txt = txt = ',\n'.join([str(int(gid)) + " (L = "+str(l) + "): "+k
                           for gid, l, k in zip(gids, ll, kinds)])
 
         txt = txt + '\n smax = ' + str(lmax)
@@ -284,6 +377,10 @@ def shape_inspector(shape, inspect_type, shapes):
         return txt, data
 
     elif inspect_type == 'distance':
+        '''
+        use custom measurement for distance from vertex
+        otherwise, BRepExtrema_DistShapeShape is used.
+        '''
         if shape_dim(shapes[0]) > shape_dim(shapes[1]):
             shapes = (shapes[1], shapes[0])
 
@@ -342,23 +439,17 @@ def shape_inspector(shape, inspect_type, shapes):
             txt = "Distance: " + str(dist)
             return txt, data
 
-        elif (isinstance(shapes[0], TopoDS_Edge) and
-              isinstance(shapes[1], TopoDS_Face)):
-            # distance between edge and face
-            assert False, "not implemented"
-
-        elif (isinstance(shapes[0], TopoDS_Edge) and
-              isinstance(shapes[1], TopoDS_Edge)):
-            # distance between edge and edge
-            assert False, "not implemented"
-
-        elif (isinstance(shapes[0], TopoDS_Face) and
-              isinstance(shapes[1], TopoDS_Face)):
-            # distance between face and face
-            assert False, "not implemented"
         else:
-            assert False, "not implemented"
-
+            extrema = BRepExtrema_DistShapeShape(shapes[0], shapes[1])
+            if extrema.IsDone():
+                minDist = extrema.Value()
+                txt = "minimum : " + str(minDist)
+                data = minDist
+            else:
+                txt = "minimum not found by BRepExtrema_DistShapeShape"
+                data = -1
+            return txt, data                
+            
     elif inspect_type == 'findsame':
         tol, shapes, topolists = shapes
         facelist = topolists[0]

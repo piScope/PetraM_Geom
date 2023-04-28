@@ -138,6 +138,8 @@ try:
     from OCC.Core.BRepFill import BRepFill_CurveConstraint
     from OCC.Core.GeomAbs import GeomAbs_C0
 
+    from OCC.Core.BRepExtrema import BRepExtrema_DistShapeShape
+
     __ex1 = TopExp_Explorer()
     __ex2 = TopExp_Explorer()
     _system = GProp_GProps()
@@ -590,6 +592,7 @@ def find_point_on_curve(edge, lengths, tol=1e-4, flip=False):
 def check_shape_area(shape, thr, return_area=False):
     surfacecount = []
     faces = []
+
     for face in iter_shape_once(shape, 'face'):
         a = measure_face_area(face)
         surfacecount.append(a)

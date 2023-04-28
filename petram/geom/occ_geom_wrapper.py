@@ -5905,13 +5905,16 @@ class Geometry():
             gids = self.get_target2(self.objs, args)
             shapes = [self.get_shape_for_gid(gid) for gid in gids]
         elif inspect_type in 'distance':
+            gids = self.get_target2(self.objs, args[:1])
+            shapes1 = [self.get_shape_for_gid(gid) for gid in gids]
             gids = self.get_target2(self.objs, args[1:])
-            shapes = [self.get_shape_for_gid(gid) for gid in gids]
-            s0 = self.vertices[args[0]]
-            shapes = [s0] + [self.get_shape_for_gid(gid) for gid in gids]
+            shapes2 = [self.get_shape_for_gid(gid) for gid in gids]
+            shapes = shapes1 + shapes2
         elif inspect_type == 'shortedge':
             shapes = (args, self.edges)
         elif inspect_type == 'smallface':
+            shapes = (args, self.faces)
+        elif inspect_type == 'narrowface':
             shapes = (args, self.faces)
         elif inspect_type == 'findsame':
             gids = [x.strip() for x in args[0].split(',')]
