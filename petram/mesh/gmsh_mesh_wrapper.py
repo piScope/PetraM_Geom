@@ -415,15 +415,8 @@ class GMSHMeshWrapper():
             # boundaries elastic seems to apply for everything
             # anyway (for now, this section is commented out) ???
             if maxdim == 3:
-                #dimTags1 = gmsh.model.getBoundary(dimTags)
-                #dimTags2 = gmsh.model.getBoundary(dimTags1)
-                #dimTags3 = gmsh.model.getBoundary(dimTags2)
-                #dimTags = list(set(dimTags + dimTags1 + dimTags2 + dimTags3))
                 do_ho = True
             elif maxdim == 2:
-                #dimTags1 = gmsh.model.getBoundary(dimTags)
-                #dimTags2 = gmsh.model.getBoundary(dimTags1)
-                #dimTags = list(set(dimTags + dimTags1 + dimTags2))
                 do_ho = True
             else:
                 do_ho = False
@@ -438,9 +431,12 @@ class GMSHMeshWrapper():
                 else:
                     pass
                 '''
+                self.show_all()
+
                 gmsh.option.setNumber("Mesh.HighOrderThresholdMax", 2)
                 gmsh.option.setNumber("Mesh.HighOrderThresholdMin", 0.1)
 
+                print("optimizing mesh", dimTags, self.optimize_ho)
                 if HighOrderOptimize[self.optimize_ho] == 1:
                     gmsh.model.mesh.optimize("HighOrder", dimTags=dimTags)
                 elif HighOrderOptimize[self.optimize_ho] == 2:
@@ -2325,8 +2321,8 @@ class GMSHMeshWrapper():
         gmsh.model.mesh.field.setNumber(field_tag,
                                         "DistMax",
                                         size*scale)
-        print("dimtags, Size", "Dist, Curves/Surfaces",
-              dimTags, maxsize, size*scale, bdrs)
+        # print("dimtags, Size", "Dist, Curves/Surfaces",
+        #      dimTags, maxsize, size*scale, bdrs)
         if dim == 2:
             gmsh.model.mesh.field.setNumbers(field_tag,
                                              "CurvesList",
