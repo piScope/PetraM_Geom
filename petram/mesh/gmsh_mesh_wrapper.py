@@ -436,7 +436,6 @@ class GMSHMeshWrapper():
                 gmsh.option.setNumber("Mesh.HighOrderThresholdMax", 2)
                 gmsh.option.setNumber("Mesh.HighOrderThresholdMin", 0.1)
 
-                print("optimizing mesh", dimTags, self.optimize_ho)
                 if HighOrderOptimize[self.optimize_ho] == 1:
                     gmsh.model.mesh.optimize("HighOrder", dimTags=dimTags)
                 elif HighOrderOptimize[self.optimize_ho] == 2:
