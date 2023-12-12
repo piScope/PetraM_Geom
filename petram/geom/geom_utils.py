@@ -107,7 +107,7 @@ def map_lines_in_geom_info(info1, info2, pmap_r, th=1e-10, trans=None):
             if (info1[2][x][0] == p1 and
                     info1[2][x][1] == p2):
                 if dist(info1[5][x], info2[5][l], trans) > th:
-                    print("rejectedy by dist", dist(info1[5][x], info2[5][l], trans))
+                    print("rejectedy by dist(1)", dist(info1[5][x], info2[5][l], trans))
                     continue
                 lmap[x] = l
                 lmap_r[l] = x
@@ -115,7 +115,8 @@ def map_lines_in_geom_info(info1, info2, pmap_r, th=1e-10, trans=None):
             elif (info1[2][x][0] == p2 and
                   info1[2][x][1] == p1):
                 if dist(info1[5][x], info2[5][l], trans) > th:
-                    print("rejectedy by dist", dist(info1[5][x], info2[5][l], trans))
+                    print("rejectedy by dist(2)", dist(info1[5][x], info2[5][l], trans))
+                    continue
                 lmap[x] = -l
                 lmap_r[l] = -x
                 break
@@ -316,6 +317,7 @@ def find_rotation_between_surface(src, dst, edge_tss, geom=None,
                       0] for ii in p1p]).flatten()
         i2 = np.array([np.where(cell_data['vertex']['geometrical'] == ii)[
                       0] for ii in p2p]).flatten()
+
     p1 = ptx[i1, :]
     p2 = ptx[i2, :]
     #n1 = normal2points(p1)
@@ -447,10 +449,10 @@ def find_rotation_between_surface2(src, dst, vol, edge_tss,
     ptx, p, l, s, v, mid_points = geom_data
     s2l = s
 
-    l1 = np.unique(np.hstack([s[k] for k in src]).flatten())
-    l2 = np.unique(np.hstack([s[k] for k in dst]).flatten())
-    p1p = np.unique(np.hstack([l[k] for k in l1]).flatten())
-    p2p = np.unique(np.hstack([l[k] for k in l2]).flatten())
+    l1 = np.unique(np.hstack([s[k] for k in src]).flatten()).astype(int)
+    l2 = np.unique(np.hstack([s[k] for k in dst]).flatten()).astype(int)
+    p1p = np.unique(np.hstack([l[k] for k in l1]).flatten()).astype(int)
+    p2p = np.unique(np.hstack([l[k] for k in l2]).flatten()).astype(int)
 
     # first find angle using surface normal
     i1 = p1p - 1
@@ -552,6 +554,7 @@ def find_rotation_between_surface2(src, dst, vol, edge_tss,
                 else:
                     pass
     p_pairs = {}
+
     for p1 in p1p:
         next = p1
         while True:
@@ -588,7 +591,6 @@ def find_rotation_between_surface2(src, dst, vol, edge_tss,
         return np.abs(np.abs(np.sum(ax * n1)) - 1) < mind_eps
 
     # using angle and normal we can find the center...
-
     def try_ax_an(ax, an):
         R = rotation_mat(ax, an)
         R_half = rotation_mat(ax, an / 2.0)
@@ -630,7 +632,14 @@ def find_rotation_between_surface2(src, dst, vol, edge_tss,
             return False, False, False, False
 
         return R, px, d, check
-
+    '''
+    for ann in (an, an-np.pi, an+np.pi, -an, -an+np.pi, -an-np.pi):
+        R, px, d, check = try_ax_an(ax, ann)
+        if check:
+            break
+    if not check:
+        assert False, "can not find center"
+    '''
     R, px, d, check = try_ax_an(ax, an)
     if not check:
         if an > 0.0:
@@ -656,6 +665,7 @@ def find_rotation_between_surface2(src, dst, vol, edge_tss,
     info2 = list(geom_data)
     info1[2] = {x: geom_data[2][x] for x in l1}
     info2[2] = {x: geom_data[2][x] for x in l2}
+
     l_pairs, l_pairs_r = map_lines_in_geom_info(info1, info2, pmap_r, th=mind_eps,
                                                 trans=translation)
 
@@ -664,6 +674,7 @@ def find_rotation_between_surface2(src, dst, vol, edge_tss,
     affine[:3, -1] = d
     affine[-1, -1] = 1.0
 
+    #print(s2l, l_pairs)
     s_pairs = find_s_pairs(src, dst, s2l, l_pairs)
 
     return ax, an, px, d, affine, p_pairs, l_pairs, s_pairs
