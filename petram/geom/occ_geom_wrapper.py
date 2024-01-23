@@ -2,6 +2,7 @@ from __future__ import print_function
 import petram.geom.occ_inspect
 from threading import Thread
 from queue import Queue
+
 from petram.geom.occ_cbook import *
 from petram.geom.geom_id import (
     GeomIDBase,
@@ -829,6 +830,7 @@ class Geometry():
 
         return f_id
 
+    '''
     def add_plate_surface(self, gids_edge, gids_vertex):
         bt = BRep_Tool()
         BPSurf = GeomPlate_BuildPlateSurface(2, 150, 10)
@@ -889,7 +891,7 @@ class Geometry():
         new_objs = self.register_shaps_balk(result)
 
         return new_objs
-
+    '''
     def add_surface_filling(self, gids_edge, gids_vertex):
         from OCC.Core.GeomAbs import GeomAbs_C0
         from OCC.Core.BRepTools import BRepTools_WireExplorer
@@ -2506,7 +2508,6 @@ class Geometry():
         lines = [self.add_extended_line(gid, ratio, resample)
                  for gid in gids]
 
-        print(lines)
         newobjs = []
         newkeys = []
         for l in lines:
@@ -2634,7 +2635,7 @@ class Geometry():
     def Simplifiers_build_geom(self, objs, *args):
         targets, use_merge, use_remover, rm_size = args
 
-        print(targets, use_merge, use_remover, rm_size)
+        #print(targets, use_merge, use_remover, rm_size)
 
         targets = [x.strip() for x in targets.split(',')]
         vols = self.get_target1(objs, targets, 'v')
@@ -2881,7 +2882,7 @@ class Geometry():
         a2 = a2 * radius
 
         c = np.array(center)
-        print(a1, a2, c)
+        #print(a1, a2, c)
         if npts == 0:
             edges = [self.add_circle_by_axis_radius(c, dirct, radius)]
         else:
@@ -2998,7 +2999,7 @@ class Geometry():
 
         edges = [self.add_circle_by_axis_radius(c, dirct, r, npts=npts)
                  for c, r in zip(centers, radius)]
-        print(edges)
+        #print(edges)
 
         newkeys = []
         for e in edges:
@@ -3297,7 +3298,7 @@ class Geometry():
         results = []
 
         for offset, altitude in zip(offsets, altitudes):
-            print(offset)
+            #print(offset)
             OM.Perform(float(offset), float(altitude))
             if not OM.IsDone():
                 assert False, "Faile to make offset"
@@ -4094,7 +4095,7 @@ class Geometry():
                 gids_new.extend(self.translate_rot(gids, tt, poa,
                                                    v2, ang, copy=True))
 
-        print(gids_new)
+        #print(gids_new)
         for gid in gids_new:
             newkeys.append(objs.addobj(gid, 'arr'))
 
@@ -4171,7 +4172,7 @@ class Geometry():
         gid_face = self.get_target1(objs, faces, 'f')[0]
         gid_edges = self.get_target1(objs, edges, 'l')
 
-        print(gid_edges)
+        #print(gid_edges)
 
         gids_new = self.chamfer2d(gid_face, gid_edges, e1, e2)
 
@@ -4461,7 +4462,7 @@ class Geometry():
 
     def Circle2DRadiusTwoTangentCurve_build_geom(self, objs, *args):
         tlines, radius, make_face = args
-        print(tlines, radius, make_face)
+        #print(tlines, radius, make_face)
 
         tlines = [x.strip() for x in tlines.split(',')]
         gids = self.get_target1(objs, tlines, 'l')
@@ -4487,7 +4488,7 @@ class Geometry():
 
         l1 = gp_Lin2d(p1, gp_Dir2d(v1))
         l2 = gp_Lin2d(p2, gp_Dir2d(v2))
-        print(l1, l2)
+        #print(l1, l2)
 
         from OCC.Core.GccEnt import gccent_Unqualified, GccEnt_QualifiedLin
         from OCC.Core.Geom2d import Geom2d_Circle
@@ -4500,8 +4501,8 @@ class Geometry():
 
         c_solver = GccAna_Circ2d2TanRad(l1_q, l2_q,
                                         radius, self.occ_geom_tolerance)
-        print(c_solver.IsDone())
-        print(c_solver.NbSolutions())
+        #print(c_solver.IsDone())
+        #print(c_solver.NbSolutions())
         for i in range(c_solver.NbSolutions()):
             c_sol = c_solver.ThisSolution(i + 1)
             c = Geom2d_Circle(c_sol)
@@ -5559,17 +5560,25 @@ class Geometry():
                 print('tesselation of face is missing, iface=', iface)
                 return
             else:
-                tab = facing.Nodes()
-                tri = facing.Triangles()
-                idx = [tri.Value(i).Get()
-                       for i in range(1, facing.NbTriangles() + 1)]
-                values = [tab.Value(i) for i in range(1, tab.Length() + 1)]
+                if not OCC_after_7_6_0:
+                    tab = facing.Nodes()
+                    tri = facing.Triangles()
+                    idx = [tri.Value(i).Get()
+                           for i in range(1, facing.NbTriangles() + 1)]
+                    values = [tab.Value(i) for i in range(1, tab.Length() + 1)]
+                    LL = tab.Length()
+                else:
+                    values = [facing.Node(i) for i in range(1, facing.NbNodes() + 1)]
+                    idx = [facing.Triangle(i).Get()
+                           for i in range(1, facing.NbTriangles() + 1)]
+                    LL = len(values)
+                
                 ptx = value2coord(values, location)
 
                 all_ptx.append(np.vstack(ptx))
 
                 face_idx[iface] = np.vstack(idx) - 1 + offset()
-                offset.increment(tab.Length())
+                offset.increment(LL)
                 return
 
         def work_on_edge_on_face(iedge, edge):
@@ -5954,7 +5963,37 @@ class Geometry():
         stlmode = filename.endswith('.stl')
 
         if selection is None:
-            comp = self.shape
+            # create temporary compound to avoid writing duplicate objects
+            #
+            shape = self.shape
+            comp = self.new_compound()
+            b = self.builder
+
+            ex1 = TopExp_Explorer(shape, TopAbs_SOLID)
+            while ex1.More():
+                b.Add(comp, ex1.Current())
+                ex1.Next()
+            ex1 = TopExp_Explorer(shape, TopAbs_SHELL, TopAbs_SOLID)
+            while ex1.More():
+                b.Add(comp, ex1.Current())
+                ex1.Next()
+            ex1 = TopExp_Explorer(shape, TopAbs_FACE, TopAbs_SHELL)
+            while ex1.More():
+                b.Add(comp, ex1.Current())
+                ex1.Next()
+            ex1 = TopExp_Explorer(shape, TopAbs_WIRE, TopAbs_FACE)
+            while ex1.More():
+                b.Add(comp, ex1.Current())
+                ex1.Next()
+            ex1 = TopExp_Explorer(shape, TopAbs_EDGE, TopAbs_WIRE)
+            while ex1.More():
+                b.Add(comp, ex1.Current())
+                ex1.Next()
+            ex1 = TopExp_Explorer(shape, TopAbs_VERTEX, TopAbs_EDGE)
+            while ex1.More():
+                b.Add(comp, ex1.Current())
+                ex1.Next()
+
         else:
             gids = []
             for i in selection[0]:

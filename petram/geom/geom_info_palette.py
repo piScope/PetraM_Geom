@@ -28,8 +28,8 @@ class GeomInfoPalette(SimpleFramePlus):
                  wx.CLOSE_BOX|
                  wx.MINIMIZE_BOX|
                  wx.RESIZE_BORDER|
-                 wx.FRAME_FLOAT_ON_PARENT|
-                 wx.FRAME_TOOL_WINDOW)
+                 wx.FRAME_FLOAT_ON_PARENT)
+        #        wx.FRAME_TOOL_WINDOW) # this does not work on apptainer on Mac/Windows
 
         super(GeomInfoPalette, self).__init__(parent, wid, title, style=style)
 
@@ -147,7 +147,7 @@ class GeomInfoPalette(SimpleFramePlus):
             lines = np.unique(np.hstack([x[0] for x in xx]))
             points = np.unique(np.hstack([x[1] for x in xx]))
             viewer.highlight_face(faces)
-            viewer.highlight_edge(lines, unselect=True)
+            viewer.highlight_edge(lines, unselect=False)
             viewer.highlight_point(points, unselect=False)
 
         def show_edges(edges):

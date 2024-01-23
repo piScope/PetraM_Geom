@@ -18,12 +18,13 @@ dprint1, dprint2, dprint3 = debug.init_dprints('GeomSequenceOperator')
 
 test_thread = False
 
+
 class MeshSequenceOperator():
     def __init__(self, **kwargs):
         self.mesh_sequence = []
         #self._prev_sequence = []
 
-    #def __del__(self):
+    # def __del__(self):
     #    self.terminate_child()
 
     def clean_queue(self, p):
@@ -36,7 +37,7 @@ class MeshSequenceOperator():
     def terminate_child(self, p):
         if p.is_alive():
             if self.use_mp:
-                self.clean_queue(p)                
+                self.clean_queue(p)
                 p.terminate()
             else:
                 p.task_q.put((-1, None))
@@ -57,17 +58,15 @@ class MeshSequenceOperator():
         else:
             pass
         self.mesh_sequence.append([name, gids, kwargs])
-        
+
     def count_sequence(self):
         return len(self.mesh_sequence)
-    
+
     def clear(self):
         self.mesh_sequence = []
-    
-                
+
     def run_generater(self, brep_input, msh_file, kwargs,
                       finalize=False, dim=3, progressbar=None):
-
         '''        
         kwargs = {'CharacteristicLengthMax': self.clmax,
                   'CharacteristicLengthMin': self.clmin,
@@ -93,8 +92,8 @@ class MeshSequenceOperator():
             p = GMSHMeshGenerator()
         p.start()
 
-        args=(brep_input, msh_file, self.mesh_sequence, dim,
-              finalize, kwargs)
+        args = (brep_input, msh_file, self.mesh_sequence, dim,
+                finalize, kwargs)
 
         p.task_q.put((1, args))
 
@@ -107,7 +106,9 @@ class MeshSequenceOperator():
                     break
                 if progressbar is not None:
                     istep += 1
-                    progressbar.Update(istep, newmsg=ret[1])
+                    rng = progressbar.GetRange()
+                    progressbar.Update(min([istep, rng-1]),
+                                       newmsg=ret[1])
                 else:
                     print("Mesh Generator : Step = " +
                           str(istep) + " : " + ret[1])
@@ -139,24 +140,26 @@ class MeshSequenceOperator():
             from petram.geom.read_gmsh import read_pts_groups, read_loops
 
             if progressbar is not None:
-                progressbar.Update(istep, newmsg="Reading mesh file for rendering")
+                rng = progressbar.GetRange()
+                progressbar.Update(min([istep, rng]),
+                                   newmsg="Reading mesh file for rendering")
             else:
                 print("Reading mesh file for rendering")
 
-            import gmsh            
+            import gmsh
             gmsh.open(msh_output)
 
             ptx, cells, cell_data = read_pts_groups(gmsh,
-                                                finished_lines=done[1],
-                                                finished_faces=done[2])
+                                                    finished_lines=done[1],
+                                                    finished_faces=done[2])
 
             data = ptx, cells, {}, cell_data, {}
-            
+
         except:
             if progressbar is not None:
                 progressbar.Destroy()
             raise
-            
+
         if progressbar is not None:
             progressbar.Destroy()
 

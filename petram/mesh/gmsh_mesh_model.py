@@ -358,6 +358,7 @@ class GmshMesh(GMeshTop, Vtable_mixin):
         v['use_ho'] = False
         v['optimize_ho'] = 'none'
         v['optimize_dom'] = 'all'
+        v['optimize_lim'] = "0.1, 2"
         v['ho_order'] = 2
 
         super(GmshMesh, self).attribute_set(v)
@@ -383,12 +384,13 @@ class GmshMesh(GMeshTop, Vtable_mixin):
         setting2 = {"style": CB_READONLY, "choices": c2}
         setting3 = {"style": CB_READONLY, "choices": c3}
         setting4 = {"style": CB_READONLY, "choices": c4}
-        ll_ho = [None, [True, [1, c3[0], 'all']],
+        ll_ho = [None, [True, [1, c3[0], 'all', '0.1, 2']],
                  27, [{'text': 'use high order (in dev, upto order 3, tet only)'},
                       {'elp': [["Order", self.ho_order, 400],
                                ["HighOrder optimize",
                                 c3[-1], 4, setting3],
-                               ["Optimize domain", 'all', 0, None], ]}
+                               ["Optimize domain", 'all', 0, None],
+                               ["SJac limits", '0.1, 2', 0, None], ]}
                       ]]
 
         ll.extend([["2D Algorithm", c1[-1], 4, setting1],
@@ -418,7 +420,8 @@ class GmshMesh(GMeshTop, Vtable_mixin):
                  self.algorithmr,
                  self.gen_all_phys_entity,
                  self.use_profiler, self.use_expert_mode,
-                 [self.use_ho, [self.ho_order, self.optimize_ho, self.optimize_dom], ],
+                 [self.use_ho, [self.ho_order, self.optimize_ho, self.optimize_dom,
+                                self.optimize_lim], ],
                  self, self, ])
 
     def preprocess_params(self, engine):
@@ -442,6 +445,7 @@ class GmshMesh(GMeshTop, Vtable_mixin):
         self.ho_order = int(v[-3][1][0])
         self.optimize_ho = str(v[-3][1][1])
         self.optimize_dom = str(v[-3][1][2])
+        self.optimize_lim = str(v[-3][1][3])
 
         return viewer_update
 
@@ -768,6 +772,7 @@ class GmshMesh(GMeshTop, Vtable_mixin):
                       'ho_order': self.ho_order,
                       'optimize_ho': self.optimize_ho,
                       'optimize_dom': self.optimize_dom,
+                      'optimize_lim': [float(x) for x in self.optimize_lim.split(',')],
                       'trash': trash,
                       'gen_all_phys_entity': self.gen_all_phys_entity,
                       'meshformat': 2.2,

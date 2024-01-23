@@ -259,6 +259,7 @@ class GMSHMeshWrapper():
         self.ho_order = kwargs.pop("ho_order", 2)
         self.optimize_ho = kwargs.pop("optimize_ho", 0)
         self.optimize_dom = kwargs.pop("optimize_dom", "all")
+        self.optimize_lim = kwargs.pop("optimize_lim", [0.1, 2])
         self.mapper_tol = kwargs.pop("mapper_tol", 1e-5)
 
         gmsh.clear()
@@ -380,8 +381,11 @@ class GMSHMeshWrapper():
                     self.queue.put((False,
                                     "Processing " + proc+"_"+str(mdim)+"D"))
 
-                if mdim == 3 and idx == len(self.mesh_sequence)-1:
+                if mdim == maxdim and idx == len(self.mesh_sequence)-1:
                     gmsh.option.setNumber("Mesh.Optimize", 1)
+                    # if self.use_ho and finalize:
+                    #    gmsh.option.setNumber("Mesh.HighOrderDistCAD", 0)
+                    #    gmsh.option.setNumber("Mesh.ElementOrder", self.ho_order)
 
                 done, params[idx] = f(done, params[idx],
                                       *args, **kwargs)
@@ -420,9 +424,9 @@ class GMSHMeshWrapper():
                 do_ho = True
             else:
                 do_ho = False
-            #do_ho = (do_ho and HighOrderOptimize[self.optimize_ho] != 0)
 
             if do_ho:
+
                 '''
                 if maxdim == 3:
                     gmsh.model.mesh.optimize("Relocate3D", dimTags=[])
@@ -436,20 +440,30 @@ class GMSHMeshWrapper():
                 gmsh.option.setNumber("Mesh.HighOrderThresholdMax", 2)
                 gmsh.option.setNumber("Mesh.HighOrderThresholdMin", 0.1)
 
-                if HighOrderOptimize[self.optimize_ho] == 1:
-                    gmsh.model.mesh.optimize("HighOrder", dimTags=dimTags)
-                elif HighOrderOptimize[self.optimize_ho] == 2:
+                gmsh.option.setNumber("Mesh.HighOrderThresholdMax", self.optimize_lim[1])
+                gmsh.option.setNumber("Mesh.HighOrderThresholdMin", self.optimize_lim[0])
+
+                if self.queue is not None:
+                    self.queue.put((False,
+                                    "Optimizing mesh (FastCurving)"))
+                gmsh.model.mesh.optimize(
+                    "HighOrderFastCurving", dimTags=dimTags)
+
+                if HighOrderOptimize[self.optimize_ho] in [2, 3]:
+                    if self.queue is not None:
+                        self.queue.put((False,
+                                        "Optimizing mesh (HighOrder-Elastic)"))
                     gmsh.model.mesh.optimize(
                         "HighOrderElastic", dimTags=dimTags)
-                    gmsh.model.mesh.optimize("HighOrder", dimTags=dimTags)
-                elif HighOrderOptimize[self.optimize_ho] == 3:
-                    gmsh.model.mesh.optimize(
-                        "HighOrderElastic", dimTags=dimTags)
-                elif HighOrderOptimize[self.optimize_ho] == 4:
-                    gmsh.model.mesh.optimize(
-                        "HighOrderFastCurving", dimTags=dimTags)
-                else:
-                    pass
+
+                if HighOrderOptimize[self.optimize_ho] in [1, 2]:
+                    if self.queue is not None:
+                        self.queue.put((False,
+                                        "Optimizing mesh (HighOrder)"))
+                    for dt in dimTags:
+                        self.show_only([dt], recursive=True)
+                        gmsh.model.mesh.optimize("HighOrder", dimTags=[dt])
+                    #gmsh.model.mesh.optimize("HighOrder", dimTags=dimTags)
 
         gmsh.model.mesh.removeDuplicateNodes()
 

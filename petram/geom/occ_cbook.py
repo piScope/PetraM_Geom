@@ -1,4 +1,5 @@
-import OCC.Core.Geom
+
+
 from petram.geom.geom_id import (GeomIDBase, VertexID, LineID, SurfaceID, VolumeID,
                                  LineLoopID, SurfaceLoopID)
 import numpy as np
@@ -6,6 +7,8 @@ import numpy as np
 hasOCC = False
 
 try:
+    import OCC
+    import OCC.Core.Geom
     from OCC.Core.GeomAPI import (GeomAPI_Interpolate,
                                   GeomAPI_ProjectPointOnSurf,
                                   GeomAPI_ProjectPointOnCurve)
@@ -134,7 +137,7 @@ try:
                                     GeomPlate_PointConstraint,
                                     GeomPlate_MakeApprox)
 
-    from OCC.Core.BRepAdaptor import BRepAdaptor_HCurve
+    #from OCC.Core.BRepAdaptor import BRepAdaptor_HCurve
     from OCC.Core.BRepFill import BRepFill_CurveConstraint
     from OCC.Core.GeomAbs import GeomAbs_C0
 
@@ -154,6 +157,11 @@ try:
                   'vertex': (TopAbs_VERTEX, topods_Vertex, 'edge')}
     __topo_names = ('solid', 'shell', 'face', 'wire', 'edge', 'vertex')
     hasOCC = True
+
+    from packaging import version
+    OCC_after_7_7_0 = version.parse(OCC.VERSION) >= version.parse("7.7.0")
+    OCC_after_7_6_0 = version.parse(OCC.VERSION) >= version.parse("7.6.0")
+    OCC_after_7_5_0 = version.parse(OCC.VERSION) >= version.parse("7.5.0")
 
 except ImportError:
     import traceback
