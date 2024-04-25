@@ -17,10 +17,11 @@ with open(path.join(here, 'README.md')) as f:
 setup(
     name='PetraM_Geom',
 
-    version='1.4.4',
+    version='1.4.5',
 
     description='PetraM Geometry Package',
     long_description=long_description,
+    long_description_content_type = 'text/markdown',
     url='https://github.com/piScope/PetraM',
     author='S. Sihraiwa',
     author_email='shiraiwa@psfc.mit.edu',
@@ -34,7 +35,11 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Scientific/Engineering :: Physics',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
 
     keywords='MFEM physics',
