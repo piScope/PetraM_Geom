@@ -460,6 +460,23 @@ def read_interface_value(name, R=False, I=False, C=False, verbose=True):
 
     return rp
 
+def write_interface_value(name, rp, R=False, I=False, C=False, verbose=True):
+    from OCC.Core.Interface import (Interface_Static_SetCVal,
+                                    Interface_Static_SetRVal,
+                                    Interface_Static_SetIVal)
+
+    if R:
+        Interface_Static_SetRVal(name, rp)
+    if I:
+        Interface_Static_SetIVal(name, rp)
+    if C:
+        Interface_Static_SetCVal(name, rp)
+
+    if verbose:
+        print("setting", name, rp)
+
+    return rp
+
 
 def display_shape(shape):
     # show shape on python-occ display for debug.

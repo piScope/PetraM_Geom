@@ -3046,10 +3046,12 @@ class Geometry():
     def CreateSurface_build_geom(self, objs, *args):
         pts, points, isFilling = args
         pts = [x.strip() for x in pts.split(',')]
-
         gids_edge = self.get_target1(objs, pts, 'l')
+
         if isFilling:
-            gids_vertex = []
+            pts = [x.strip() for x in points.split(',') if len(x.strip()) > 0]
+            gids_vertex = self.get_target1(objs, pts, 'p')
+
             face_id = self.add_surface_filling(gids_edge, gids_vertex)
             shape = self.faces[face_id]
             self.builder.Add(self.shape, shape)
@@ -3571,7 +3573,6 @@ class Geometry():
             tax = tax / np.sqrt(np.sum(np.array(tax)**2))
             for length in lengths:
                 trans.append(trans_delta(length * tax))
-
         newkeys = []
 
         if offset != 0:
@@ -6029,7 +6030,11 @@ class Geometry():
         if not stlmode:
             writer = STEPControl_Writer()
 
-            check = Interface_Static_SetIVal("write.step.assembly", 1)
+            check = Interface_Static_SetIVal(
+                "write.step.assembly", 1, verbose=False)
+
+            # we assume the model is made in M
+            write_interface_value("write.step.unit", "M", C=True)
 
             print("### Exporting Step file", filename)
             read_interface_value("write.precision.mode", I=True)
